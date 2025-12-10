@@ -2,6 +2,8 @@ import streamlit as st
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+import time
+
 
 # -------------------------
 #  CONFIG STREAMLIT
@@ -101,9 +103,9 @@ embeddings, db, modelo = carregar_modelos()
 # -------------------------
 #  ÁREA DE CHAT
 # -------------------------
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+st.markdown('<div class="chat-container" id="chatbox">', unsafe_allow_html=True)
 
-# Renderizar o histórico
+# Renderizar histórico
 for troca in st.session_state["historico"]:
     if troca["user"]:
         st.markdown(
@@ -113,7 +115,7 @@ for troca in st.session_state["historico"]:
                 <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     if troca["bot"]:
@@ -124,13 +126,24 @@ for troca in st.session_state["historico"]:
                 <div class="bot-msg">{troca["bot"]}</div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Scroll automático sempre que recarregar
+st.markdown(
+    """
+<script>
+    var chatbox = document.getElementById("chatbox");
+    chatbox.scrollTop = chatbox.scrollHeight;
+</script>
+""",
+    unsafe_allow_html=True,
+)
 
 # -------------------------
-#  INPUT
+#  INPUT DO CHAT
 # -------------------------
 pergunta = st.chat_input("Digite sua dúvida...")
 
@@ -151,7 +164,7 @@ if pergunta:
         if troca["bot"]:
             historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
 
-    # Gera resposta
+    # Gera resposta com LangChain
     prompt = ChatPromptTemplate.from_template(prompt_template)
     prompt_injetado = prompt.invoke({
         "historico": historico_formatado,
@@ -159,7 +172,42 @@ if pergunta:
         "pergunta": pergunta
     })
 
-    resposta = modelo.invoke(prompt_injetado).content
+    resposta_final = modelo.invoke(prompt_injetado).content
 
-    st.session_state["historico"][-1]["bot"] = resposta
+    # -------------------------
+    #  EFEITO DE DIGITAÇÃO
+    # -------------------------
+    container_msg = st.empty()
+    texto_parcial = ""
+
+    for char in resposta_final:
+        texto_parcial += char
+        container_msg.markdown(
+            f"""
+            <div class="msg-row">
+                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                <div class="bot-msg">{texto_parcial}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # scroll enquanto escreve
+        st.markdown(
+            """
+            <script>
+                var chatbox = document.getElementById("chatbox");
+                chatbox.scrollTop = chatbox.scrollHeight;
+            </script>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        time.sleep(0.015)
+
+    # Salva texto final no histórico
+    st.session_state["historico"][-1]["bot"] = resposta_final
+
+    # Recarrega interface
     st.rerun()
+
