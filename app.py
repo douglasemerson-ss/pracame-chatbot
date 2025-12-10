@@ -2,7 +2,6 @@ import streamlit as st
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-import time
 
 
 # -------------------------
@@ -22,7 +21,10 @@ st.markdown("""
     max-width: 850px;
     margin-left: auto;
     margin-right: auto;
-    padding-bottom: 90px;
+    padding-bottom: 120px;
+    height: 75vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
 }
 
 .user-msg {
@@ -56,8 +58,8 @@ st.markdown("""
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     margin: 0 8px;
 }
@@ -65,8 +67,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 st.title("🔰 Praçame - Suporte Técnico Militar")
 st.write("Versão de testes — respondo dúvidas sobre **hardware**.")
+
 
 # -------------------------
 #  SESSION STATE
@@ -74,8 +78,10 @@ st.write("Versão de testes — respondo dúvidas sobre **hardware**.")
 if "historico" not in st.session_state:
     st.session_state["historico"] = []
 
+
 OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
 CAMINHO_DB = "db"
+
 
 prompt_template = """
 Você é um assistente técnico militar especializado em suporte ao usuário.
@@ -91,6 +97,10 @@ Pergunta atual:
 {pergunta}
 """
 
+
+# -------------------------
+#  MODELOS
+# -------------------------
 @st.cache_resource
 def carregar_modelos():
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY)
@@ -98,51 +108,77 @@ def carregar_modelos():
     modelo = ChatOpenAI(openai_api_key=OPENAI_KEY)
     return embeddings, db, modelo
 
+
 embeddings, db, modelo = carregar_modelos()
 
-# -------------------------
-#  ÁREA DE CHAT
-# -------------------------
-st.markdown('<div class="chat-container" id="chatbox">', unsafe_allow_html=True)
-
-# Renderizar histórico
-for troca in st.session_state["historico"]:
-    if troca["user"]:
-        st.markdown(
-            f"""
-            <div class="msg-row user">
-                <div class="user-msg">{troca["user"]}</div>
-                <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    if troca["bot"]:
-        st.markdown(
-            f"""
-            <div class="msg-row">
-                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
-                <div class="bot-msg">{troca["bot"]}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-st.markdown("</div>", unsafe_allow_html=True)
-
 
 # -------------------------
-#  INPUT DO CHAT
+#  ÁREA DO CHAT
+# -------------------------
+chat_box = st.container()
+with chat_box:
+    st.markdown('<div id="chatbox" class="chat-container">', unsafe_allow_html=True)
+
+    for troca in st.session_state["historico"]:
+        if troca["user"]:
+            st.markdown(
+                f"""
+                <div class="msg-row user">
+                    <div class="user-msg">{troca["user"]}</div>
+                    <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        if troca["bot"]:
+            st.markdown(
+                f"""
+                <div class="msg-row">
+                    <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                    <div class="bot-msg">{troca["bot"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# -------------------------
+#  INPUT DO USUÁRIO
 # -------------------------
 pergunta = st.chat_input("Digite sua dúvida...")
 
+
 if pergunta:
 
-    # Adiciona no histórico
+    # Adiciona no histórico (sem resposta ainda)
     st.session_state["historico"].append({"user": pergunta, "bot": None})
 
-    # Vetor + busca
+    # Mostra imediatamente no chat (sem esperar o bot)
+    with chat_box:
+        st.markdown(
+            f"""
+            <div class="msg-row user">
+                <div class="user-msg">{pergunta}</div>
+                <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # Scroll após mostrar a mensagem do usuário
+    st.markdown("""
+        <script>
+            var box = document.getElementById("chatbox");
+            if (box) { 
+                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            }
+        </script>
+    """, unsafe_allow_html=True)
+
+    # Busca por similaridade
     vetor = embeddings.embed_query(pergunta)
     resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
     textos_resultado = [r[0].page_content for r in resultados]
@@ -154,48 +190,38 @@ if pergunta:
         if troca["bot"]:
             historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
 
-    # Gera o prompt
-prompt = ChatPromptTemplate.from_template(prompt_template)
-prompt_injetado = prompt.invoke({
-    "historico": historico_formatado,
-    "base_conhecimento": base_conhecimento,
-    "pergunta": pergunta
-})
+    # Prepara prompt
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+    prompt_injetado = prompt.invoke({
+        "historico": historico_formatado,
+        "base_conhecimento": base_conhecimento,
+        "pergunta": pergunta
+    })
 
-# MOSTRA A MENSAGEM DO USUÁRIO IMEDIATAMENTE
-st.markdown(
-    f"""
-    <div class="msg-row user">
-        <div class="user-msg">{pergunta}</div>
-        <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    # IA responde
+    resposta = modelo.invoke(prompt_injetado).content
 
-# AGORA O BOT RESPONDE
-resposta = modelo.invoke(prompt_injetado).content
+    # Salva no histórico
+    st.session_state["historico"][-1]["bot"] = resposta
 
-# Salva no histórico
-st.session_state["historico"][-1]["bot"] = resposta
+    # Exibe resposta do bot
+    with chat_box:
+        st.markdown(
+            f"""
+            <div class="msg-row">
+                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                <div class="bot-msg">{resposta}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-# Renderiza a resposta do bot
-st.markdown(
-    f"""
-    <div class="msg-row">
-        <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
-        <div class="bot-msg">{resposta}</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Scroll suave após mostrar tudo
-st.markdown("""
-<script>
-    var box = document.getElementById("chatbox");
-    if (box) {
-        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-    }
-</script>
-""", unsafe_allow_html=True)
+    # Scroll suave após resposta
+    st.markdown("""
+    <script>
+        var box = document.getElementById("chatbox");
+        if (box) {
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+        }
+    </script>
+    """, unsafe_allow_html=True)
