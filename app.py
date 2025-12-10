@@ -1,98 +1,120 @@
 import streamlit as st
-from langchain_chroma.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+import time
 
-# -------------------------
-#  CONFIGURAÇÕES STREAMLIT
-# -------------------------
-st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰")
-st.header("🔰 Praçame - Suporte Técnico Militar")
-st.write("Estou em versão de testes, respondo dúvidas sobre problemas de hardware.")
+# =============================
+#   CONFIGURAÇÃO DO APP
+# =============================
+st.set_page_config(page_title="Chat RAG", layout="wide")
 
-# -------------------------
-#  CARREGAR OPENAI API KEY
-# -------------------------
-OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
+# =============================
+#   CSS PARA DEIXAR TIPO CHAT
+# =============================
+st.markdown("""
+<style>
+.chat-container {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
 
-CAMINHO_DB = "db"
+.user-message {
+    background-color: #DCF8C6;
+    padding: 10px 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    align-self: flex-end;
+}
 
-prompt_template = """
-Você é um assistente técnico militar especializado em suporte ao usuário.
-Todos os usuários são leigos no assunto, imagine que são crianças lidando com problemas de T.I.
+.bot-message {
+    background-color: #ECECEC;
+    padding: 10px 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    align-self: flex-start;
+}
 
-Histórico da conversa até agora:
-{historico}
+.message-container {
+    display: flex;
+    flex-direction: column;
+}
+</style>
+""", unsafe_allow_html=True)
 
-Base de conhecimento relevante da documentação:
-{base_conhecimento}
+# =============================
+#   ESTADO DAS MENSAGENS
+# =============================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-Pergunta atual do usuário:
-{pergunta}
 
-Explique a causa do problema e ofereça soluções de forma super didática, calma,
-clara e com um linguajar simples.
-"""
+# =============================
+#   FUNÇÃO: EFEITO DE DIGITAÇÃO
+# =============================
+def typewriter(text, speed=0.02):
+    """Simula efeito de digitação."""
+    typed = ""
+    for char in text:
+        typed += char
+        yield typed
+        time.sleep(speed)
 
-# -------------------------
-#  ESTADO DA SESSÃO
-# -------------------------
-if "historico" not in st.session_state:
-    st.session_state["historico"] = []
 
-# -------------------------
-#  CARREGAR MODELO + DB
-# -------------------------
-@st.cache_resource
-def carregar_modelos():
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY)
-    db = Chroma(persist_directory=CAMINHO_DB, embedding_function=embeddings)
-    modelo = ChatOpenAI(openai_api_key=OPENAI_KEY)
-    return embeddings, db, modelo
+# =============================
+#   EXIBIÇÃO DO CHAT
+# =============================
+st.markdown("## Chat RAG")
 
-embeddings, db, modelo = carregar_modelos()
+chat_box = st.container()
+with chat_box:
+    st.markdown('<div class="chat-container" id="chat">', unsafe_allow_html=True)
 
-# -------------------------
-#  CAMPO DE INPUT
-# -------------------------
-pergunta = st.chat_input("Digite sua dúvida...")
+    st.markdown('<div class="message-container">', unsafe_allow_html=True)
+
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="user-message">{msg["content"]}</div>',
+                        unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="bot-message">{msg["content"]}</div>',
+                        unsafe_allow_html=True)
+
+    st.markdown('</div></div>', unsafe_allow_html=True)
+
+# =============================
+#   INPUT DO USUÁRIO
+# =============================
+pergunta = st.chat_input("Digite sua pergunta...")
 
 if pergunta:
+    # salva mensagem do usuário
+    st.session_state.messages.append({"role": "user", "content": pergunta})
 
-    st.session_state["historico"].append({"user": pergunta, "bot": None})
+    # ---------------------------
+    #   SUA LÓGICA DE RAG AQUI
+    # ---------------------------
+    # resposta = gerar_resposta(pergunta)
+    resposta = gerar_resposta(pergunta)   # <- coloque sua função real
 
-    # ---- BUSCAR NO BANCO DE VETORES ----
-    vetor = embeddings.embed_query(pergunta)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
+    # salva placeholder para animação
+    placeholder = st.empty()
 
-    textos_resultado = [r[0].page_content for r in resultados]
-    base_conhecimento = "\n\n----\n\n".join(textos_resultado)
+    texto_parcial = ""
 
-    # ---- HISTÓRICO FORMATADO ----
-    historico_formatado = ""
-    for troca in st.session_state["historico"]:
-        if troca["bot"]:
-            historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
+    # efeito digitando
+    for parte in typewriter(resposta):
+        texto_parcial = parte
+        placeholder.markdown(
+            f'<div class="bot-message">{texto_parcial}</div>',
+            unsafe_allow_html=True
+        )
+        # scroll automático
+        st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>",
+                     unsafe_allow_html=True)
 
-    # ---- GERAR RESPOSTA ----
-    prompt = ChatPromptTemplate.from_template(prompt_template)
-    prompt_injetado = prompt.invoke({
-        "historico": historico_formatado,
-        "base_conhecimento": base_conhecimento,
-        "pergunta": pergunta
-    })
+    # salva mensagem final
+    st.session_state.messages.append({"role": "assistant", "content": resposta})
 
-    resposta = modelo.invoke(prompt_injetado).content
-
-    # salvar no histórico
-    st.session_state["historico"][-1]["bot"] = resposta
-
-# -------------------------
-#  MOSTRAR MENSAGENS
-# -------------------------
-for troca in st.session_state["historico"]:
-    with st.chat_message("user"):
-        st.write(troca["user"])
-    if troca["bot"]:
-        with st.chat_message("assistant"):
-            st.write(troca["bot"])
+    # força atualização para fixar mensagem
+    st.rerun()
