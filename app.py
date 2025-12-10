@@ -2,7 +2,7 @@ import streamlit as st
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-
+import time
 
 # -------------------------
 #  CONFIG STREAMLIT
@@ -16,15 +16,11 @@ st.set_page_config(
 # --- CSS personalizado ---
 st.markdown("""
 <style>
-
 .chat-container {
     max-width: 850px;
     margin-left: auto;
     margin-right: auto;
-    padding-bottom: 120px;
-    height: 75vh;
-    overflow-y: auto;
-    scroll-behavior: smooth;
+    padding-bottom: 90px;
 }
 
 .user-msg {
@@ -58,19 +54,20 @@ st.markdown("""
 }
 
 .avatar {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     margin: 0 8px;
 }
 
+.scroll-fix {
+    height: 30px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-
 st.title("🔰 Praçame - Suporte Técnico Militar")
 st.write("Versão de testes — respondo dúvidas sobre **hardware**.")
-
 
 # -------------------------
 #  SESSION STATE
@@ -78,10 +75,11 @@ st.write("Versão de testes — respondo dúvidas sobre **hardware**.")
 if "historico" not in st.session_state:
     st.session_state["historico"] = []
 
+if "digitando" not in st.session_state:
+    st.session_state["digitando"] = False
 
 OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
 CAMINHO_DB = "db"
-
 
 prompt_template = """
 Você é um assistente técnico militar especializado em suporte ao usuário.
@@ -97,10 +95,6 @@ Pergunta atual:
 {pergunta}
 """
 
-
-# -------------------------
-#  MODELOS
-# -------------------------
 @st.cache_resource
 def carregar_modelos():
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY)
@@ -108,16 +102,16 @@ def carregar_modelos():
     modelo = ChatOpenAI(openai_api_key=OPENAI_KEY)
     return embeddings, db, modelo
 
-
 embeddings, db, modelo = carregar_modelos()
 
+# -------------------------
+#  ÁREA DE CHAT
+# -------------------------
+container_chat = st.container()
+scroll_anchor = st.empty()
 
-# -------------------------
-#  ÁREA DO CHAT
-# -------------------------
-chat_box = st.container()
-with chat_box:
-    st.markdown('<div id="chatbox" class="chat-container">', unsafe_allow_html=True)
+with container_chat:
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
     for troca in st.session_state["historico"]:
         if troca["user"]:
@@ -142,86 +136,66 @@ with chat_box:
                 unsafe_allow_html=True
             )
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# -------------------------
-#  INPUT DO USUÁRIO
-# -------------------------
-pergunta = st.chat_input("Digite sua dúvida...")
-
-
-if pergunta:
-
-    # Adiciona no histórico (sem resposta ainda)
-    st.session_state["historico"].append({"user": pergunta, "bot": None})
-
-    # Mostra imediatamente no chat (sem esperar o bot)
-    with chat_box:
+    # placeholder para o efeito "digitando..."
+    if st.session_state["digitando"]:
         st.markdown(
-            f"""
-            <div class="msg-row user">
-                <div class="user-msg">{pergunta}</div>
-                <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
+            """
+            <div class="msg-row">
+                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                <div class="bot-msg"><i>Digitando...</i></div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    # Scroll após mostrar a mensagem do usuário
-    st.markdown("""
-        <script>
-            var box = document.getElementById("chatbox");
-            if (box) { 
-                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            }
-        </script>
-    """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Busca por similaridade
-    vetor = embeddings.embed_query(pergunta)
+scroll_anchor.markdown('<div class="scroll-fix"></div>', unsafe_allow_html=True)
+
+# -------------------------
+#  INPUT
+# -------------------------
+pergunta = st.chat_input("Digite sua dúvida...")
+
+if pergunta:
+
+    # A mensagem do usuário aparece no chat imediatamente
+    st.session_state["historico"].append({"user": pergunta, "bot": None})
+
+    # Ativa indicador de digitação
+    st.session_state["digitando"] = True
+    st.rerun()
+
+# Se está "digitando", gerar resposta agora
+if st.session_state["digitando"]:
+
+    ultima_msg = st.session_state["historico"][-1]["user"]
+
+    vetor = embeddings.embed_query(ultima_msg)
     resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
     textos_resultado = [r[0].page_content for r in resultados]
     base_conhecimento = "\n----\n".join(textos_resultado)
 
-    # Histórico formatado
     historico_formatado = ""
-    for troca in st.session_state["historico"]:
+    for troca in st.session_state["historico"][:-1]:  # evita mensagem sem bot
         if troca["bot"]:
             historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
 
-    # Prepara prompt
     prompt = ChatPromptTemplate.from_template(prompt_template)
     prompt_injetado = prompt.invoke({
         "historico": historico_formatado,
         "base_conhecimento": base_conhecimento,
-        "pergunta": pergunta
+        "pergunta": ultima_msg
     })
 
-    # IA responde
-    resposta = modelo.invoke(prompt_injetado).content
+    resposta_final = modelo.invoke(prompt_injetado).content
 
-    # Salva no histórico
-    st.session_state["historico"][-1]["bot"] = resposta
+    # salva no histórico
+    st.session_state["historico"][-1]["bot"] = resposta_final
 
-    # Exibe resposta do bot
-    with chat_box:
-        st.markdown(
-            f"""
-            <div class="msg-row">
-                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
-                <div class="bot-msg">{resposta}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # desativa "digitando"
+    st.session_state["digitando"] = False
 
-    # Scroll suave após resposta
-    st.markdown("""
-    <script>
-        var box = document.getElementById("chatbox");
-        if (box) {
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-        }
-    </script>
-    """, unsafe_allow_html=True)
+    # rerun para exibir bot e rolar
+    time.sleep(0.1)
+    st.rerun()
