@@ -1,22 +1,17 @@
+import streamlit as st
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-import streamlit as st
 import openai
-from dotenv import load_dotenv
 
-# Carregar secret key
+# carregar secret
 openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-
-
-load_dotenv()
 
 CAMINHO_DB = "db"
 
 prompt_template = """
-Você é um assistente técnico militar especializado em suporte ao usuário. 
-Todos os usuários são leigos no assunto, imagine que são crianças lidando com problemas de T.I
+Você é um assistente técnico militar especializado em suporte ao usuário.
+Todos os usuários são leigos no assunto, imagine que são crianças lidando com problemas de T.I.
 
 Histórico da conversa:
 {historico}
@@ -27,50 +22,64 @@ Base de conhecimento relevante:
 Pergunta atual do usuário:
 {pergunta}
 
-Você precisa explicar a razão do problema e dar as soluções de forma super didáditica e clara com um linguajar simples
+Explique a causa do problema e ofereça soluções de forma super didática, calma,
+clara e com um linguajar simples.
 """
 
-def iniciar_chatbot():
+# ---- CONFIGURAÇÃO STREAMLIT ----
+st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰")
+st.title("🔰 Praçame - Suporte Técnico Militar")
 
-    print("🔰 Praçame iniciado! Digite 'sair' para encerrar.\n")
+# Inicializar sessões
+if "historico" not in st.session_state:
+    st.session_state["historico"] = []
 
-    historico_conversa = []
-    funcao_embedding = OpenAIEmbeddings(api_key=openai.api_key)
-    db = Chroma(persist_directory=CAMINHO_DB, embedding_function=funcao_embedding)
+# carregar modelo e base
+@st.cache_resource
+def carregar_modelos():
+    embeddings = OpenAIEmbeddings(api_key=openai.api_key)
+    db = Chroma(persist_directory=CAMINHO_DB, embedding_function=embeddings)
     modelo = ChatOpenAI(api_key=openai.api_key)
-    
-    while True:
-        pergunta = input("Você: ")
+    return embeddings, db, modelo
 
-        if pergunta.lower() in ["sair", "exit", "quit"]:
-            print("Encerrando o chat. Até mais!")
-            break
+embeddings, db, modelo = carregar_modelos()
 
-        # converter pergunta em embedding e buscar no DB
-        vetor = funcao_embedding.embed_query(pergunta)
-        resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
+# Campo de input
+pergunta = st.chat_input("Digite sua dúvida...")
 
-        textos_resultado = [r[0].page_content for r in resultados]
-        base_conhecimento = "\n\n----\n\n".join(textos_resultado)
+if pergunta:
+    # adicionar pergunta ao chat
+    st.session_state["historico"].append({"user": pergunta, "bot": None})
 
-        # montar histórico concatenado
-        historico_formatado = ""
-        for troca in historico_conversa:
+    # buscar informações relevantes
+    vetor = embeddings.embed_query(pergunta)
+    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
+    textos_resultado = [r[0].page_content for r in resultados]
+    base_conhecimento = "\n\n----\n\n".join(textos_resultado)
+
+    # montar histórico
+    historico_formatado = ""
+    for troca in st.session_state["historico"]:
+        if troca["bot"] is not None:
             historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
 
-        # gerar resposta
-        prompt = ChatPromptTemplate.from_template(prompt_template)
-        prompt_injetado = prompt.invoke({
-            "historico": historico_formatado,
-            "base_conhecimento": base_conhecimento,
-            "pergunta": pergunta
-        })
+    # gerar resposta
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+    prompt_injetado = prompt.invoke({
+        "historico": historico_formatado,
+        "base_conhecimento": base_conhecimento,
+        "pergunta": pergunta
+    })
 
-        resposta = modelo.invoke(prompt_injetado).content
-        print("\nPraçame:", resposta, "\n")
+    resposta = modelo.invoke(prompt_injetado).content
 
-        # salvar no histórico
-        historico_conversa.append({"user": pergunta, "bot": resposta})
+    # salvar e exibir
+    st.session_state["historico"][-1]["bot"] = resposta
 
-# iniciar chatbot
-iniciar_chatbot()
+# mostrar histórico no chat
+for troca in st.session_state["historico"]:
+    with st.chat_message("user"):
+        st.write(troca["user"])
+    if troca["bot"]:
+        with st.chat_message("assistant"):
+            st.write(troca["bot"])
