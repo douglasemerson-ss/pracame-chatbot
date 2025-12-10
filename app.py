@@ -186,14 +186,14 @@ if pergunta:
     st.session_state["historico"][-1]["bot"] = resposta_final
 
     # --- Força scroll suave após a resposta ---
-st.markdown("""
-<script>
-    const box = document.getElementById("chatbox");
-    if (box) {
-        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-    }
-</script>
-""", unsafe_allow_html=True)
+    st.markdown("""
+    <script>
+        const box = document.getElementById("chatbox");
+        if (box) {
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+        }
+    </script>
+    """, unsafe_allow_html=True)
 
 
     # Recarrega interface
