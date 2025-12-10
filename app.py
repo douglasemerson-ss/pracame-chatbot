@@ -93,6 +93,7 @@ Base de conhecimento relevante:
 
 Pergunta atual:
 {pergunta}
+
 """
 
 @st.cache_resource
@@ -171,31 +172,63 @@ if st.session_state["digitando"]:
 
     ultima_msg = st.session_state["historico"][-1]["user"]
 
+    # Vetores e busca
     vetor = embeddings.embed_query(ultima_msg)
     resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
-    textos_resultado = [r[0].page_content for r in resultados]
-    base_conhecimento = "\n----\n".join(textos_resultado)
 
-    historico_formatado = ""
-    for troca in st.session_state["historico"][:-1]:  # evita mensagem sem bot
-        if troca["bot"]:
-            historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
+    # Filtrar resultados realmente relevantes
+    resultados_validos = [r for r in resultados if r[1] <= 1.2]
 
-    prompt = ChatPromptTemplate.from_template(prompt_template)
-    prompt_injetado = prompt.invoke({
-        "historico": historico_formatado,
-        "base_conhecimento": base_conhecimento,
-        "pergunta": ultima_msg
-    })
+    if len(resultados_validos) == 0:
+        # Sem conhecimento suficiente → resposta limitada
+        resposta_final = (
+            "Não encontrei nenhuma informação sobre esse tema na base de conhecimento. "
+            "Portanto, não posso responder essa pergunta."
+        )
 
-    resposta_final = modelo.invoke(prompt_injetado).content
+    else:
+        textos_resultado = [r[0].page_content for r in resultados_validos]
+        base_conhecimento = "\n----\n".join(textos_resultado)
 
-    # salva no histórico
+        # Histórico formatado
+        historico_formatado = ""
+        for troca in st.session_state["historico"][:-1]:
+            if troca["bot"]:
+                historico_formatado += (
+                    f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
+                )
+
+        # NOVO PROMPT SUPER SEGURO
+        prompt_template_limitado = """
+Você é um assistente militar que só pode responder usando EXCLUSIVAMENTE a base de conhecimento fornecida abaixo.
+
+NUNCA invente nada.
+NUNCA use conhecimento externo.
+Se a base não contiver informação suficiente, responda exatamente:
+"Não encontrei informações suficientes na base de conhecimento para responder a isso."
+
+Base de conhecimento:
+{base_conhecimento}
+
+Pergunta:
+{pergunta}
+
+Histórico:
+{historico}
+"""
+
+        prompt = ChatPromptTemplate.from_template(prompt_template_limitado)
+
+        prompt_injetado = prompt.invoke({
+            "historico": historico_formatado,
+            "base_conhecimento": base_conhecimento,
+            "pergunta": ultima_msg
+        })
+
+        resposta_final = modelo.invoke(prompt_injetado).content
+
+    # Salvar no histórico
     st.session_state["historico"][-1]["bot"] = resposta_final
 
-    # desativa "digitando"
     st.session_state["digitando"] = False
-
-    # rerun para exibir bot e rolar
-    time.sleep(0.1)
     st.rerun()
