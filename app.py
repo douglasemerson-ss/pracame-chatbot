@@ -82,18 +82,21 @@ OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
 CAMINHO_DB = "db"
 
 prompt_template = """
-Você é um assistente técnico militar especializado em suporte ao usuário.
-Explique sempre de forma didática, calma e clara, usando linguajar simples.
+Você é um assistente militar que só pode responder usando EXCLUSIVAMENTE a base de conhecimento fornecida abaixo.
 
-Histórico da conversa:
-{historico}
+NUNCA invente nada.
+NUNCA use conhecimento externo.
+Se a base não contiver informação suficiente, responda exatamente:
+"Não encontrei informações suficientes na base de conhecimento para responder a isso."
 
-Base de conhecimento relevante:
+Base de conhecimento:
 {base_conhecimento}
 
-Pergunta atual:
+Pergunta:
 {pergunta}
 
+Histórico:
+{historico}
 """
 
 @st.cache_resource
@@ -174,10 +177,10 @@ if st.session_state["digitando"]:
 
     # Vetores e busca
     vetor = embeddings.embed_query(ultima_msg)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)
+    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=3)
 
     # Filtrar resultados realmente relevantes
-    resultados_validos = [r for r in resultados if r[1] <= 1.2]
+    resultados_validos = [r for r in resultados if r[1] <= 1.5]
 
     if len(resultados_validos) == 0:
         # Sem conhecimento suficiente → resposta limitada
@@ -198,26 +201,8 @@ if st.session_state["digitando"]:
                     f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
                 )
 
-        # NOVO PROMPT SUPER SEGURO
-        prompt_template_limitado = """
-Você é um assistente militar que só pode responder usando EXCLUSIVAMENTE a base de conhecimento fornecida abaixo.
-
-NUNCA invente nada.
-NUNCA use conhecimento externo.
-Se a base não contiver informação suficiente, responda exatamente:
-"Não encontrei informações suficientes na base de conhecimento para responder a isso."
-
-Base de conhecimento:
-{base_conhecimento}
-
-Pergunta:
-{pergunta}
-
-Histórico:
-{historico}
-"""
-
-        prompt = ChatPromptTemplate.from_template(prompt_template_limitado)
+      
+        prompt = ChatPromptTemplate.from_template(prompt_template)
 
         prompt_injetado = prompt.invoke({
             "historico": historico_formatado,
