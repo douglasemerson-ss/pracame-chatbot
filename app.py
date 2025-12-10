@@ -154,48 +154,48 @@ if pergunta:
         if troca["bot"]:
             historico_formatado += f"Usuário: {troca['user']}\nAssistente: {troca['bot']}\n"
 
-    # Gera resposta com LangChain
-    prompt = ChatPromptTemplate.from_template(prompt_template)
-    prompt_injetado = prompt.invoke({
-        "historico": historico_formatado,
-        "base_conhecimento": base_conhecimento,
-        "pergunta": pergunta
-    })
+    # Gera o prompt
+prompt = ChatPromptTemplate.from_template(prompt_template)
+prompt_injetado = prompt.invoke({
+    "historico": historico_formatado,
+    "base_conhecimento": base_conhecimento,
+    "pergunta": pergunta
+})
 
-    resposta_final = modelo.invoke(prompt_injetado).content
+# MOSTRA A MENSAGEM DO USUÁRIO IMEDIATAMENTE
+st.markdown(
+    f"""
+    <div class="msg-row user">
+        <div class="user-msg">{pergunta}</div>
+        <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-    # -------------------------
-    #  EFEITO DE DIGITAÇÃO
-    # -------------------------
-    container_msg = st.empty()
-    texto_parcial = ""
+# AGORA O BOT RESPONDE
+resposta = modelo.invoke(prompt_injetado).content
 
-    for char in resposta_final:
-        texto_parcial += char
-        container_msg.markdown(
-            f"""
-            <div class="msg-row">
-                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
-                <div class="bot-msg">{texto_parcial}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+# Salva no histórico
+st.session_state["historico"][-1]["bot"] = resposta
 
-    # Salva texto final no histórico
-    st.session_state["historico"][-1]["bot"] = resposta_final
+# Renderiza a resposta do bot
+st.markdown(
+    f"""
+    <div class="msg-row">
+        <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+        <div class="bot-msg">{resposta}</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-    # --- Força scroll suave após a resposta ---
-    st.markdown("""
-    <script>
-        const box = document.getElementById("chatbox");
-        if (box) {
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-        }
-    </script>
-    """, unsafe_allow_html=True)
-
-
-    # Recarrega interface
-    st.rerun()
-
+# Scroll suave após mostrar tudo
+st.markdown("""
+<script>
+    var box = document.getElementById("chatbox");
+    if (box) {
+        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+""", unsafe_allow_html=True)
