@@ -28,7 +28,8 @@ clara e com um linguajar simples.
 
 # ---- CONFIGURAÇÃO STREAMLIT ----
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰")
-st.title("🔰 Praçame - Suporte Técnico Militar")
+st.header("🔰 Praçame - Suporte Técnico Militar")
+st.writer("Estou em versão de testes, apenas respondo algumas perguntas sobre Hardware")
 
 # Inicializar sessões
 if "historico" not in st.session_state:
