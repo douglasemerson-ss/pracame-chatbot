@@ -142,7 +142,7 @@ with container_chat:
         st.markdown(
             """
             <div class="msg-row">
-                <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/7985/7985432.png">
                 <div class="bot-msg"><i>Digitando...</i></div>
             </div>
             """,
