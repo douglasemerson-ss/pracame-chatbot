@@ -97,8 +97,6 @@ INSTRUÇÕES IMPORTANTES (LIMITE RÍGIDO):
 - Você só pode responder usando EXCLUSIVAMENTE a "Base de conhecimento" fornecida abaixo.
 - NÃO invente, NÃO adivinhe e NÃO use conhecimento externo.
 - NÃO repita literalmente as marcações do histórico (por exemplo: "Usuário:", "Assistente:") na sua resposta.
-- Se a Base de conhecimento não contiver informação suficiente para responder, responda exatamente:
-  "Não encontrei informações suficientes na base de conhecimento para responder a isso."
 
 Base de conhecimento (trechos recuperados):
 {base_conhecimento}
@@ -109,7 +107,7 @@ Histórico resumido (apenas para contexto, NÃO repita marcações):
 Pergunta:
 {pergunta}
 
-Resposta (seja didático, explique causas e passos de solução com linguagem simples; se não houver base, responda a frase específica acima):
+Resposta (seja didático, explique causas e passos de solução com linguagem simples)
 """
 
 # -------------------------
