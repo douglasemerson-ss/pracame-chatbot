@@ -119,7 +119,7 @@ with container_chat:
                 f"""
                 <div class="msg-row user">
                     <div class="user-msg">{troca["user"]}</div>
-                    <img class="avatar" src="https://i.imgur.com/TrVh7U1.png">
+                    <img class="avatar" src="https://png.pngtree.com/element_our/20190601/ourmid/pngtree-character-user-icon-material-image_1338203.jpg">
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -129,7 +129,7 @@ with container_chat:
             st.markdown(
                 f"""
                 <div class="msg-row">
-                    <img class="avatar" src="https://i.imgur.com/8cLZQvB.png">
+                    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/7985/7985432.png">
                     <div class="bot-msg">{troca["bot"]}</div>
                 </div>
                 """,
