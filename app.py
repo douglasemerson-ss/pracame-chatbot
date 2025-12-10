@@ -2,6 +2,10 @@ import streamlit as st
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+import openai
+
+# carregar secret
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 CAMINHO_DB = "db"
 
@@ -24,27 +28,18 @@ clara e com um linguajar simples.
 
 # ---- CONFIGURAÇÃO STREAMLIT ----
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰")
-st.header("🔰 Praçame - Suporte Técnico Militar")
-st.write("Estou em versão de testes, apenas respondo algumas perguntas sobre Hardware")
+st.title("🔰 Praçame - Suporte Técnico Militar")
 
-# Inicializar sessão
+# Inicializar sessões
 if "historico" not in st.session_state:
     st.session_state["historico"] = []
 
 # carregar modelo e base
 @st.cache_resource
 def carregar_modelos():
-    api_key = st.secrets["OPENAI_API_KEY"]
-
-    embeddings = OpenAIEmbeddings(api_key=api_key)
+    embeddings = OpenAIEmbeddings(api_key=openai.api_key)
     db = Chroma(persist_directory=CAMINHO_DB, embedding_function=embeddings)
-
-    modelo = ChatOpenAI(
-        api_key=api_key,
-        model="gpt-4o-mini",   # seguro + barato + rápido
-        temperature=0.4
-    )
-
+    modelo = ChatOpenAI(api_key=openai.api_key)
     return embeddings, db, modelo
 
 embeddings, db, modelo = carregar_modelos()
