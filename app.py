@@ -119,7 +119,7 @@ with container_chat:
                 f"""
                 <div class="msg-row user">
                     <div class="user-msg">{troca["user"]}</div>
-                    <img class="avatar" src="https://png.pngtree.com/element_our/20190601/ourmid/pngtree-character-user-icon-material-image_1338203.jpg">
+                    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/9977/9977334.png">
                 </div>
                 """,
                 unsafe_allow_html=True
