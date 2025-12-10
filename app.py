@@ -131,16 +131,6 @@ for troca in st.session_state["historico"]:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Scroll automático sempre que recarregar
-st.markdown(
-    """
-<script>
-    var chatbox = document.getElementById("chatbox");
-    chatbox.scrollTop = chatbox.scrollHeight;
-</script>
-""",
-    unsafe_allow_html=True,
-)
 
 # -------------------------
 #  INPUT DO CHAT
@@ -192,21 +182,19 @@ if pergunta:
             unsafe_allow_html=True,
         )
 
-        # scroll enquanto escreve
-        st.markdown(
-            """
-            <script>
-                var chatbox = document.getElementById("chatbox");
-                chatbox.scrollTop = chatbox.scrollHeight;
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        time.sleep(0.015)
-
     # Salva texto final no histórico
     st.session_state["historico"][-1]["bot"] = resposta_final
+
+    # --- Força scroll suave após a resposta ---
+st.markdown("""
+<script>
+    const box = document.getElementById("chatbox");
+    if (box) {
+        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+""", unsafe_allow_html=True)
+
 
     # Recarrega interface
     st.rerun()
