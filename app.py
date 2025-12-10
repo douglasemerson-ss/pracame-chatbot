@@ -1,7 +1,14 @@
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+import streamlit as st
+import openai
 from dotenv import load_dotenv
+
+# Carregar secret key
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+
 
 load_dotenv()
 
@@ -28,10 +35,10 @@ def iniciar_chatbot():
     print("🔰 Praçame iniciado! Digite 'sair' para encerrar.\n")
 
     historico_conversa = []
-    funcao_embedding = OpenAIEmbeddings()
+    funcao_embedding = OpenAIEmbeddings(api_key=openai.api_key)
     db = Chroma(persist_directory=CAMINHO_DB, embedding_function=funcao_embedding)
-    modelo = ChatOpenAI()
-
+    modelo = ChatOpenAI(api_key=openai.api_key)
+    
     while True:
         pergunta = input("Você: ")
 
