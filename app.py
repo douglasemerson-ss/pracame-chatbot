@@ -177,10 +177,10 @@ if st.session_state["digitando"]:
 
     # Vetores e busca
     vetor = embeddings.embed_query(ultima_msg)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=3)
+    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=5)
 
     # Filtrar resultados realmente relevantes
-    resultados_validos = [r for r in resultados if r[1] <= 1.5]
+    resultados_validos = [r for r in resultados if r[1] <= 1.2]
 
     if len(resultados_validos) == 0:
         # Sem conhecimento suficiente → resposta limitada
