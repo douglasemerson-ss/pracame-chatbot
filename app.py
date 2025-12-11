@@ -254,9 +254,21 @@ if pergunta:
     render_chat()
 
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
+    #st.markdown("""
+    #<script>
+        #var box = document.getElementById("chatbox");
+        #if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+    #</script>
+    #""", unsafe_allow_html=True)
+
+
+    # Scroll inteligente – só rola se já tiver conversa
+if st.session_state["historico"] or st.session_state["digitando"]:
     st.markdown("""
     <script>
-        var box = document.getElementById("chatbox");
-        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+        const box = document.getElementById("chatbox");
+        if (box) {
+            box.scrollTop = box.scrollHeight;
+        }
     </script>
     """, unsafe_allow_html=True)
