@@ -67,6 +67,11 @@ st.markdown("""
  .scroll-fix { 
 height: 10px; 
 }
+
+* {
+    overflow-anchor: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
