@@ -273,9 +273,8 @@ if pergunta:
 
     # 5) desativar indicador digitando e re-renderizar tudo com a resposta
     st.session_state["digitando"] = False
-    st.rerun()
-# re-render COM scroll desta vez (porque houve mudança de conteúdo)
-    render_chat(scroll=True)
+    st.rerun(scroll=True)
+
     
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
     #st.markdown("""
