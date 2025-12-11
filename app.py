@@ -7,7 +7,6 @@ from langchain_core.prompts import ChatPromptTemplate
 # -------------------------
 # Streamlit config
 # -------------------------
-st.session_state.setdefault("deve_scroll", False)
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
 st.title("🔰 Praçame - Suporte Técnico Militar")
 st.header("Este chatbot foi desenvolvido a partir da necessidade da equipe de TI para diminuir o fluxo de abertura de chamados.")
@@ -130,7 +129,6 @@ embeddings, db, modelo = carregar_modelos()
 # Container do chat
 # -------------------------
 chat_box = st.container()
-st.session_state.setdefault("deve_scroll", False)
 
 def render_chat():
     """Renderiza todo o histórico e o indicador 'digitando'."""
@@ -256,13 +254,9 @@ if pergunta:
     render_chat()
 
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
-    
-    if st.session_state.get("deve_scroll", False):
-        st.markdown("""
-        <script>
-            var box = document.getElementById("chatbox");
-            if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-        </script>
-        """, unsafe_allow_html=True)
-
-        st.session_state["deve_scroll"] = False  # reseta
+    st.markdown("""
+    <script>
+        var box = document.getElementById("chatbox");
+        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+    </script>
+    """, unsafe_allow_html=True)
