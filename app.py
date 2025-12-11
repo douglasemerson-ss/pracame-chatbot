@@ -18,7 +18,7 @@ st.subheader("Atualmente sou uma versão de testes — respondo dúvidas sobre *
 st.markdown("""
 <style>
 .chat-container {
-    max-width: 90px;
+    max-width: 900px;
     margin-left: auto;
     margin-right: auto;
     padding-bottom: 90px;
@@ -67,11 +67,6 @@ st.markdown("""
  .scroll-fix { 
 height: 10px; 
 }
-
-* {
-    overflow-anchor: none !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
