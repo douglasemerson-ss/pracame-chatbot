@@ -7,10 +7,12 @@ from langchain_core.prompts import ChatPromptTemplate
 # -------------------------
 # Streamlit config
 # -------------------------
-st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
-st.title("🔰 Praçame - Suporte Técnico Militar")
+st.set_page_config(page_title="Praçame Chatbot", page_icon="Flag", layout="wide")
+
+st.title("Flag Praçame - Suporte Técnico Militar")
 st.header("Este chatbot foi desenvolvido a partir da necessidade da equipe de TI para diminuir o fluxo de abertura de chamados.")
 st.subheader("Atualmente sou uma versão de testes — respondo dúvidas sobre **Assinador SERPRO**.")
+st.markdown("---")
 
 # -------------------------
 # CSS / estilos
@@ -21,19 +23,22 @@ st.markdown("""
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;
-    padding-bottom: 90px;
+    padding-bottom: 100px;
     height: 70vh;
     overflow-y: auto;
     scroll-behavior: smooth;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fafafa;
 }
 .user-msg {
     background: #d9e6ff;
     color: #000;
     padding: 12px 16px;
     border-radius: 14px;
-    margin: 6px 0;
-    width: fit-content;
+    margin: 8px 12px 8px 80px;
     max-width: 75%;
+    align-self: flex-end;
     word-wrap: break-word;
 }
 .bot-msg {
@@ -41,9 +46,9 @@ st.markdown("""
     color: #000;
     padding: 12px 16px;
     border-radius: 14px;
-    margin: 6px 0;
-    width: fit-content;
+    margin: 8px 80px 8px 12px;
     max-width: 75%;
+    align-self: flex-start;
     word-wrap: break-word;
 }
 .msg-row {
@@ -55,16 +60,16 @@ st.markdown("""
     justify-content: flex-end;
 }
 .avatar {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    margin: 0 8px;
+    margin: 0 10px;
+    flex-shrink: 0;
 }
 .typing {
     font-style: italic;
     color: #666;
 }
-.scroll-fix { height: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -72,15 +77,13 @@ st.markdown("""
 # Session state
 # -------------------------
 if "historico" not in st.session_state:
-    st.session_state["historico"] = []  # cada item: {"user": "...", "bot": "..."}
-
+    st.session_state["historico"] = []           # [{"user": "...", "bot": "..."}]
 if "digitando" not in st.session_state:
     st.session_state["digitando"] = False
 
 # -------------------------
-# Load OpenAI key from Streamlit secrets
+# Load OpenAI key
 # -------------------------
-# (Coloque OPENAI_API_KEY no Streamlit Secrets)
 OPENAI_KEY = st.secrets.get("OPENAI_API_KEY", None)
 if not OPENAI_KEY:
     st.error("OPENAI_API_KEY não encontrada em Streamlit Secrets. Vá em Manage App → Secrets e adicione.")
@@ -89,15 +92,14 @@ if not OPENAI_KEY:
 CAMINHO_DB = "db"
 
 # -------------------------
-# Prompt seguro (não repetir histórico)
+# Prompt seguro
 # -------------------------
-# Observação: nós passamos o histórico ao prompt em formato *resumido* e damos instruções claras
-# para NÃO repetir as marcações do histórico no texto de saída.
 prompt_template = """
 INSTRUÇÕES IMPORTANTES (LIMITE RÍGIDO):
-- Você só pode responder usando EXCLUSIVAMENTE a "Base de conhecimento" fornecida abaixo.
+- Você só pode responder usando EXCLUSIVAMENTE a "Base de conhecimento fornecida abaixo.
 - NÃO invente, NÃO adivinhe e NÃO use conhecimento externo.
-- NÃO repita literalmente as marcações do histórico (por exemplo: "Usuário:", "Assistente:") na sua resposta.
+- NÃO repita literalmente as marcações do histórico (ex: "Usuário:", "Assistente:") na sua resposta.
+- Seja didático, use linguagem simples e explique causas e passos de solução.
 
 Base de conhecimento (trechos recuperados):
 {base_conhecimento}
@@ -105,21 +107,19 @@ Base de conhecimento (trechos recuperados):
 Histórico resumido (apenas para contexto, NÃO repita marcações):
 {historico}
 
-Pergunta:
+Pergunta atual:
 {pergunta}
 
-Resposta (seja didático, explique causas e passos de solução com linguagem simples)
+Resposta:
 """
 
 # -------------------------
-# Carregar modelos e DB
+# Carregar modelos e DB (cache)
 # -------------------------
 @st.cache_resource
 def carregar_modelos():
-    # Embeddings: definimos explicitamente o modelo do embedding (ajuste se desejar)
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY, model="text-embedding-3-small")
     db = Chroma(persist_directory=CAMINHO_DB, embedding_function=embeddings)
-    # Chat model: escolha um modelo disponível; gpt-4o-mini é sugerido como default
     modelo = ChatOpenAI(openai_api_key=OPENAI_KEY, model="gpt-4o-mini", temperature=0.2)
     return embeddings, db, modelo
 
@@ -131,12 +131,11 @@ embeddings, db, modelo = carregar_modelos()
 chat_box = st.container()
 
 def render_chat():
-    """Renderiza todo o histórico e o indicador 'digitando'."""
     with chat_box:
         st.markdown('<div id="chatbox" class="chat-container">', unsafe_allow_html=True)
-
+        
         for troca in st.session_state["historico"]:
-            # user message
+            # Mensagem do usuário
             st.markdown(
                 f"""
                 <div class="msg-row user">
@@ -146,8 +145,7 @@ def render_chat():
                 """,
                 unsafe_allow_html=True
             )
-
-            # bot message (pode ser None ainda)
+            # Mensagem do bot
             if troca.get("bot"):
                 st.markdown(
                     f"""
@@ -158,8 +156,8 @@ def render_chat():
                     """,
                     unsafe_allow_html=True
                 )
-
-        # indicador "digitando..."
+        
+        # Indicador digitando
         if st.session_state["digitando"]:
             st.markdown(
                 f"""
@@ -170,99 +168,63 @@ def render_chat():
                 """,
                 unsafe_allow_html=True
             )
-
+        
         st.markdown('</div>', unsafe_allow_html=True)
 
-# render inicial
+# Renderização inicial
 render_chat()
-st.markdown('<div class="scroll-fix"></div>', unsafe_allow_html=True)
 
 # -------------------------
 # Input do usuário
 # -------------------------
-pergunta = st.chat_input("Digite sua dúvida...")
+pergunta = st.chat_input("Digite sua dúvida sobre o Assinador SERPRO...")
 
 if pergunta:
-    # 1) adicionar mensagem do usuário imediatamente (sem resposta)
+    # 1. Adiciona mensagem do usuário
     st.session_state["historico"].append({"user": pergunta, "bot": None})
-
-    # 2) ativar o indicador de digitação e re-renderizar para o usuário ver "Digitando..."
+    
+    # 2. Mostra "digitando..."
     st.session_state["digitando"] = True
     render_chat()
-    # Forçar scroll até o final (mostra a mensagem do usuário e o "Digitando...")
-    st.markdown("""
-    <script>
-        var box = document.getElementById("chatbox");
-        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-    </script>
-    """, unsafe_allow_html=True)
 
-    # 3) Agora geramos a resposta (bloqueante) — mantenha isso abaixo para garantir que o UX mostre "Digitando..."
-    ultima_msg = pergunta
+    # 3. Gera resposta
+    vetor = embeddings.embed_query(pergunta)
+    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=6)
 
-    # recuperar vetores/fragmentos
-    vetor = embeddings.embed_query(ultima_msg)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=6)  # k maior para segurança
-
-    # Filtra resultados (opcional): aqui usamos TODOS e avaliamos no prompt
-    if not resultados or len(resultados) == 0:
-        # sem dados no índice
+    if not resultados:
         resposta_final = "Não encontrei informações suficientes na base de conhecimento para responder a isso."
     else:
-        # coletar conteúdos (você pode limitar aqui tamanho/quantidade)
-        # mantemos a ordem original; juntamos os page_content
-        textos_resultado = []
-        for doc, score in resultados:
-            textos_resultado.append(doc.page_content)
-
-        base_conhecimento = "\n\n----\n\n".join(textos_resultado)
-
-        # preparar histórico resumido - sem marcações "Usuário/Assistente"
-        # vamos passar apenas as últimas N trocas (ex.: 6) para evitar prompt muito grande
-        resumo_historico = []
-        for troca in st.session_state["historico"][:-1]:  # sem a mensagem atual
-            if troca.get("bot"):
-                resumo_historico.append(f"User: {troca['user']}\nAssistant: {troca['bot']}")
+        base_conhecimento = "\n\n----\n\n".join([doc.page_content for doc, _ in resultados])
+        
+        # Histórico resumido (últimas 6 trocas
+        resumo = []
+        for t in st.session_state["historico"][:-1][-6:]:
+            if t.get("bot"):
+                resumo.append(f"User: {t['user']}\nAssistant: {t['bot']}")
             else:
-                resumo_historico.append(f"User: {troca['user']}")
+                resumo.append(f"User: {t['user']}")
+        historico_texto = "\n\n".join(resumo)
 
-        # limitar tamanho do histórico a N últimas entradas
-        resumo_historico_text = "\n\n".join(resumo_historico[-6:])
-
-        # montar prompt com instruções rígidas
         prompt = ChatPromptTemplate.from_template(prompt_template)
-        prompt_injetado = prompt.invoke({
-            "historico": resumo_historico_text,
+        chain = prompt | modelo
+        resposta_final = chain.invoke({
             "base_conhecimento": base_conhecimento,
-            "pergunta": ultima_msg
-        })
+            "historico": historico_texto,
+            "pergunta": pergunta
+        }).content
 
-        # gerar resposta a partir do modelo
-        # Este é o ponto crítico — o prompt instrui fortemente para não "inventar"
-        resposta_final = modelo.invoke(prompt_injetado).content
+        # Segurança extra
+        if not resposta_final or len(resposta_final.strip()) < 8:
+            resposta_final = "Desculpe, não consegui encontrar uma resposta clara na base de conhecimento."
 
-        # Se o modelo tentar burlar (por exemplo, responder algo muito curto ou genérico),
-        # você pode checar aqui e forçar a resposta padrão. Exemplo:
-        if not resposta_final or len(resposta_final.strip()) < 10:
-            resposta_final = "Não encontrei informações suficientes na base de conhecimento para responder a isso."
-
-    # 4) salvar resposta no histórico
+    # 4. Salva resposta
     st.session_state["historico"][-1]["bot"] = resposta_final
-
-    # 5) desativar indicador digitando e re-renderizar tudo com a resposta
     st.session_state["digitando"] = False
+
+    # 5. Re-renderiza com a resposta
     render_chat()
 
-    # 6) scroll suave para o final para garantir que o usuário veja a resposta
-    #st.markdown("""
-    #<script>
-        #var box = document.getElementById("chatbox");
-        #if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-    #</script>
-    #""", unsafe_allow_html=True)
-
-
-    # Scroll inteligente – só rola se já tiver conversa
+# SCROLL INTELIGENTE — só rola para baixo se já houver conversa
 if st.session_state["historico"] or st.session_state["digitando"]:
     st.markdown("""
     <script>
