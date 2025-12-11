@@ -190,12 +190,12 @@ if pergunta:
     st.session_state["digitando"] = True
     render_chat()
     # Forçar scroll até o final (mostra a mensagem do usuário e o "Digitando...")
-    st.markdown("""
-    <script>
-        var box = document.getElementById("chatbox");
-        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-    </script>
-    """, unsafe_allow_html=True)
+    #st.markdown("""
+    #<script>
+        #var box = document.getElementById("chatbox");
+        #if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+    #</script>
+    #""", unsafe_allow_html=True)
 
     # 3) Agora geramos a resposta (bloqueante) — mantenha isso abaixo para garantir que o UX mostre "Digitando..."
     ultima_msg = pergunta
