@@ -208,8 +208,8 @@ if pergunta:
 
     # 2) ativar o indicador de digitação e re-renderizar para o usuário ver "Digitando..."
     st.session_state["digitando"] = True
-    #render_chat()
-    st.rerun()
+    render_chat()
+    #st.rerun()
 
     
     # Forçar scroll até o final (mostra a mensagem do usuário e o "Digitando...")
