@@ -9,8 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 # -------------------------
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
 st.title("🔰 Praçame - Suporte Técnico Militar")
-st.header("Este chatbot foi desenvolvido a partir da necessidade da equipe de TI para diminuir o fluxo de abertura de chamados.")
-st.subheader("Atualmente sou uma versão de testes — respondo dúvidas sobre **Assinador SERPRO**.")
+st.header("Obtenha ajuda referente ao Assinador SERPRO com nosso assistente virtual.")
+st.subheader("Atualmente sou uma versão de testes.")
 
 # -------------------------
 # CSS / estilos
