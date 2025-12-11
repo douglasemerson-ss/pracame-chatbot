@@ -65,9 +65,14 @@ st.markdown("""
     color: #666;
 }
 
-/* .scroll-fix { height: 10px; }  */
+
 </style>
 """, unsafe_allow_html=True)
+
+# .scroll-fix { 
+#height: 10px; 
+#}
+
 
 # -------------------------
 # Session state
