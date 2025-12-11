@@ -175,7 +175,7 @@ def render_chat():
 
 # render inicial
 render_chat()
-st.markdown(unsafe_allow_html=True)
+st.markdown('',unsafe_allow_html=True)
 
 # -------------------------
 # Input do usuário
