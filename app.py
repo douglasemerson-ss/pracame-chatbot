@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # -------------------------
 # Streamlit config
 # -------------------------
+st.session_state.setdefault("deve_scroll", False)
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
 st.title("🔰 Praçame - Suporte Técnico Militar")
 st.header("Este chatbot foi desenvolvido a partir da necessidade da equipe de TI para diminuir o fluxo de abertura de chamados.")
@@ -180,7 +181,7 @@ st.markdown('<div class="scroll-fix"></div>', unsafe_allow_html=True)
 # -------------------------
 # Input do usuário
 # -------------------------
-st.session_state.setdefault("deve_scroll", False)
+
 pergunta = st.chat_input("Digite sua dúvida...")
 
 if pergunta:
