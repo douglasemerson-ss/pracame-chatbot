@@ -257,11 +257,11 @@ if pergunta:
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
     
     if st.session_state.get("deve_scroll", False):
-    st.markdown("""
-    <script>
-        var box = document.getElementById("chatbox");
-        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-    </script>
-    """, unsafe_allow_html=True)
+        st.markdown("""
+        <script>
+            var box = document.getElementById("chatbox");
+            if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+        </script>
+        """, unsafe_allow_html=True)
 
-    st.session_state["deve_scroll"] = False  # reseta
+        st.session_state["deve_scroll"] = False  # reseta
