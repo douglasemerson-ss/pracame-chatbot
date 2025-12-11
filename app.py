@@ -180,6 +180,7 @@ st.markdown('<div class="scroll-fix"></div>', unsafe_allow_html=True)
 # -------------------------
 # Input do usuário
 # -------------------------
+st.session_state.setdefault("deve_scroll", False)
 pergunta = st.chat_input("Digite sua dúvida...")
 
 if pergunta:
@@ -254,9 +255,13 @@ if pergunta:
     render_chat()
 
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
+    
+    if st.session_state.get("deve_scroll", False):
     st.markdown("""
     <script>
         var box = document.getElementById("chatbox");
         if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
     </script>
     """, unsafe_allow_html=True)
+
+    st.session_state["deve_scroll"] = False  # reseta
