@@ -208,7 +208,10 @@ if pergunta:
 
     # 2) ativar o indicador de digitação e re-renderizar para o usuário ver "Digitando..."
     st.session_state["digitando"] = True
-    render_chat()
+    #render_chat()
+    st.rerun()
+
+    
     # Forçar scroll até o final (mostra a mensagem do usuário e o "Digitando...")
     #st.markdown("""
     #<script>
@@ -222,7 +225,7 @@ if pergunta:
 
     # recuperar vetores/fragmentos
     vetor = embeddings.embed_query(ultima_msg)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=6)  # k maior para segurança
+    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=4)  # k maior para segurança
 
     # Filtra resultados (opcional): aqui usamos TODOS e avaliamos no prompt
     if not resultados or len(resultados) == 0:
