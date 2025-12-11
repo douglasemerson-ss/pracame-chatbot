@@ -1,236 +1,189 @@
 import streamlit as st
-import time
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-# -------------------------
-# Streamlit config
-# -------------------------
-st.set_page_config(page_title="Praçame Chatbot", page_icon="Flag", layout="wide")
+# =========================
+# Configuração da página
+# =========================
+st.set_page_config(page_title="Praçame Chatbot", page_icon="Flag", layout="centered")
 
 st.title("Flag Praçame - Suporte Técnico Militar")
-st.header("Este chatbot foi desenvolvido a partir da necessidade da equipe de TI para diminuir o fluxo de abertura de chamados.")
-st.subheader("Atualmente sou uma versão de testes — respondo dúvidas sobre **Assinador SERPRO**.")
+st.markdown("Este chatbot foi desenvolvido para reduzir a abertura de chamados de TI.")
+st.markdown("**Versão de testes** — respondo apenas sobre o **Assinador SERPRO**.")
 st.markdown("---")
 
-# -------------------------
-# CSS / estilos
-# -------------------------
+# =========================
+# CSS bonito e funcional
+# =========================
 st.markdown("""
 <style>
-.chat-container {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-bottom: 100px;
-    height: 70vh;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    background: #fafafa;
-}
-.user-msg {
-    background: #d9e6ff;
-    color: #000;
-    padding: 12px 16px;
-    border-radius: 14px;
-    margin: 8px 12px 8px 80px;
-    max-width: 75%;
-    align-self: flex-end;
-    word-wrap: break-word;
-}
-.bot-msg {
-    background: #eef5e8;
-    color: #000;
-    padding: 12px 16px;
-    border-radius: 14px;
-    margin: 8px 80px 8px 12px;
-    max-width: 75%;
-    align-self: flex-start;
-    word-wrap: break-word;
-}
-.msg-row {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-.msg-row.user {
-    justify-content: flex-end;
-}
-.avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    margin: 0 10px;
-    flex-shrink: 0;
-}
-.typing {
-    font-style: italic;
-    color: #666;
-}
+    .chat-container {
+        padding: 0;
+        margin: 0;
+    }
+    .chat-container {
+        max-width: 800px;
+        margin: 0 auto;
+        height: 65vh;
+        overflow-y: auto;
+        padding: 20px 10px 100px 10px;
+        scroll-behavior: smooth;
+    }
+    .user-bubble {
+        background: #d1e7ff;
+        color: black;
+        padding: 12px 18px;
+        border-radius: 18px 18px 4px 18px;
+        max-width: 70%;
+        margin: 8px 0 8px auto;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .bot-bubble {
+        background: #e8f5e8;
+        color: black;
+        padding: 12px 18px;
+        border-radius: 18px 18px 18px 4px;
+        max-width: 70%;
+        margin: 8px auto 8px 0;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .typing {
+        background: #e8f5e8;
+        color: #555;
+        font-style: italic;
+        padding: 12px 18px;
+        border-radius: 18px 18px 18px 4px;
+        max-width: 100px;
+        margin: 8px auto 8px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------
+# =========================
 # Session state
-# -------------------------
+# =========================
 if "historico" not in st.session_state:
-    st.session_state["historico"] = []           # [{"user": "...", "bot": "..."}]
+    st.session_state.historico = []
 if "digitando" not in st.session_state:
-    st.session_state["digitando"] = False
+    st.session_state.digitando = False
 
-# -------------------------
-# Load OpenAI key
-# -------------------------
-OPENAI_KEY = st.secrets.get("OPENAI_API_KEY", None)
-if not OPENAI_KEY:
-    st.error("OPENAI_API_KEY não encontrada em Streamlit Secrets. Vá em Manage App → Secrets e adicione.")
+# =========================
+# Chave da OpenAI
+# =========================
+if not st.secrets.get("OPENAI_API_KEY"):
+    st.error("Configure a OPENAI_API_KEY nos Secrets do Streamlit")
     st.stop()
 
-CAMINHO_DB = "db"
+# =========================
+# Carrega modelos (cache)
+# =========================
+@st.cache_resource
+def load_models():
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    db = Chroma(persist_directory="db", embedding_function=embeddings)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    return embeddings, db, llm
 
-# -------------------------
-# Prompt seguro
-# -------------------------
+embeddings, db, llm = load_models()
+
+# =========================
+# Prompt rígido anti-alucinação
+# =========================
 prompt_template = """
-INSTRUÇÕES IMPORTANTES (LIMITE RÍGIDO):
-- Você só pode responder usando EXCLUSIVAMENTE a "Base de conhecimento fornecida abaixo.
-- NÃO invente, NÃO adivinhe e NÃO use conhecimento externo.
-- NÃO repita literalmente as marcações do histórico (ex: "Usuário:", "Assistente:") na sua resposta.
-- Seja didático, use linguagem simples e explique causas e passos de solução.
+Você é um assistente de suporte técnico militar extremamente preciso.
+Responda APENAS com base nos documentos abaixo. Nunca invente informação.
 
-Base de conhecimento (trechos recuperados):
-{base_conhecimento}
+Documentos relevantes:
+{context}
 
-Histórico resumido (apenas para contexto, NÃO repita marcações):
-{historico}
+Histórico da conversa (para contexto apenas):
+{history}
 
-Pergunta atual:
-{pergunta}
+Pergunta do usuário:
+{question}
 
-Resposta:
+Resposta clara e didática (passo a passo quando necessário):
 """
 
-# -------------------------
-# Carregar modelos e DB (cache)
-# -------------------------
-@st.cache_resource
-def carregar_modelos():
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_KEY, model="text-embedding-3-small")
-    db = Chroma(persist_directory=CAMINHO_DB, embedding_function=embeddings)
-    modelo = ChatOpenAI(openai_api_key=OPENAI_KEY, model="gpt-4o-mini", temperature=0.2)
-    return embeddings, db, modelo
+# =========================
+# Função que renderiza o chat uma única vez
+# =========================
+chat_container = st.container()
 
-embeddings, db, modelo = carregar_modelos()
+with chat_container:
+    st.markdown('<div class="chat-container" id="chatbox">', unsafe_allow_html=True)
 
-# -------------------------
-# Container do chat
-# -------------------------
-chat_box = st.container()
+    for msg in st.session_state.historico:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="user-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="bot-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
 
-def render_chat():
-    with chat_box:
-        st.markdown('<div id="chatbox" class="chat-container">', unsafe_allow_html=True)
-        
-        for troca in st.session_state["historico"]:
-            # Mensagem do usuário
-            st.markdown(
-                f"""
-                <div class="msg-row user">
-                    <div class="user-msg">{troca['user']}</div>
-                    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/9977/9977334.png">
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            # Mensagem do bot
-            if troca.get("bot"):
-                st.markdown(
-                    f"""
-                    <div class="msg-row">
-                        <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/7985/7985432.png">
-                        <div class="bot-msg">{troca['bot']}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-        
-        # Indicador digitando
-        if st.session_state["digitando"]:
-            st.markdown(
-                f"""
-                <div class="msg-row">
-                    <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/7985/7985432.png">
-                    <div class="bot-msg typing">Digitando...</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Indicador de digitação
+    if st.session_state.digitando:
+        st.markdown('<div class="typing">Digitando...</div>', unsafe_allow_html=True)
 
-# Renderização inicial
-render_chat()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------
+# =========================
 # Input do usuário
-# -------------------------
-pergunta = st.chat_input("Digite sua dúvida sobre o Assinador SERPRO...")
+# =========================
+if pergunta := st.chat_input("Digite sua dúvida sobre o Assinador SERPRO..."):
+    # 1. Adiciona pergunta do usuário
+    st.session_state.historico.append({"role": "user", "content": pergunta})
+    st.session_state.digitando = True
 
-if pergunta:
-    # 1. Adiciona mensagem do usuário
-    st.session_state["historico"].append({"user": pergunta, "bot": None})
+    # Re-renderiza imediatamente (mostra a pergunta + "Digitando...")
+    st.rerun()
+
+# =========================
+# Geração da resposta (só roda quando tem pergunta nova e ainda não respondeu)
+# =========================
+if st.session_state.digitando:
+    ultima_pergunta = st.session_state.historico[-1]["content"]
+
+    # Busca no vetor
+    docs = db.similarity_search_with_relevance_scores(ultima_pergunta, k=6)
     
-    # 2. Mostra "digitando..."
-    st.session_state["digitando"] = True
-    render_chat()
-
-    # 3. Gera resposta
-    vetor = embeddings.embed_query(pergunta)
-    resultados = db.similarity_search_by_vector_with_relevance_scores(vetor, k=6)
-
-    if not resultados:
-        resposta_final = "Não encontrei informações suficientes na base de conhecimento para responder a isso."
+    if not docs or docs[0][1] < 0.7:  # score muito baixo = sem informação confiável
+        resposta = "Desculpe, não encontrei informações suficientes na base de conhecimento para responder essa dúvida com segurança."
     else:
-        base_conhecimento = "\n\n----\n\n".join([doc.page_content for doc, _ in resultados])
+        context = "\n\n---\n\n".join([doc.page_content for doc, _ in docs])
         
-        # Histórico resumido (últimas 6 trocas
-        resumo = []
-        for t in st.session_state["historico"][:-1][-6:]:
-            if t.get("bot"):
-                resumo.append(f"User: {t['user']}\nAssistant: {t['bot']}")
-            else:
-                resumo.append(f"User: {t['user']}")
-        historico_texto = "\n\n".join(resumo)
-
+        # Monta histórico limpo (últimas 6 trocas)
+        history = ""
+        for m in st.session_state.historico[:-1][-6:]:
+            role = "Usuário" if m["role"] == "user" else "Assistente"
+            history += f"{role}: {m['content']}\n"
+        
         prompt = ChatPromptTemplate.from_template(prompt_template)
-        chain = prompt | modelo
-        resposta_final = chain.invoke({
-            "base_conhecimento": base_conhecimento,
-            "historico": historico_texto,
-            "pergunta": pergunta
+        chain = prompt | llm
+        
+        resposta = chain.invoke({
+            "context": context,
+            "history": history,
+            "question": ultima_pergunta
         }).content
 
-        # Segurança extra
-        if not resposta_final or len(resposta_final.strip()) < 8:
-            resposta_final = "Desculpe, não consegui encontrar uma resposta clara na base de conhecimento."
+    # Salva resposta
+    st.session_state.historico.append({"role": "assistant", "content": resposta})
+    st.session_state.digitando = False
 
-    # 4. Salva resposta
-    st.session_state["historico"][-1]["bot"] = resposta_final
-    st.session_state["digitando"] = False
+    # Força atualização da tela
+    st.rerun()
 
-    # 5. Re-renderiza com a resposta
-    render_chat()
-
-# SCROLL INTELIGENTE — só rola para baixo se já houver conversa
-if st.session_state["historico"] or st.session_state["digitando"]:
+# =========================
+# Scroll automático só quando tem conversa
+# =========================
+if len(st.session_state.historico) > 0 or st.session_state.digitando:
     st.markdown("""
     <script>
-        const box = document.getElementById("chatbox");
-        if (box) {
-            box.scrollTop = box.scrollHeight;
+        const chatbox = document.getElementById("chatbox");
+        if (chatbox) {
+            chatbox.scrollTop = chatbox.scrollHeight;
         }
     </script>
     """, unsafe_allow_html=True)
