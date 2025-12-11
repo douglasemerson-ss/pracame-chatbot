@@ -130,6 +130,7 @@ embeddings, db, modelo = carregar_modelos()
 # Container do chat
 # -------------------------
 chat_box = st.container()
+st.session_state.setdefault("deve_scroll", False)
 
 def render_chat():
     """Renderiza todo o histórico e o indicador 'digitando'."""
@@ -181,7 +182,6 @@ st.markdown('<div class="scroll-fix"></div>', unsafe_allow_html=True)
 # -------------------------
 # Input do usuário
 # -------------------------
-
 pergunta = st.chat_input("Digite sua dúvida...")
 
 if pergunta:
