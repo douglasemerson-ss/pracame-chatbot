@@ -151,8 +151,8 @@ if st.session_state.digitando:
     if not docs or docs[0][1] < 0.7:  # score muito baixo = sem informação confiável
         resposta = "Desculpe, não encontrei informações suficientes na base de conhecimento para responder essa dúvida com segurança."
     else:
-        context = "\n\n---\n\n".join([doc.page_content for doc, _ in docs])
-        
+        context = "\n\n---\n\n".join([doc.page_content])
+        #context = "\n\n---\n\n".join([doc.page_content for doc, _ in docs])
         # Monta histórico limpo (últimas 6 trocas)
         history = ""
         for m in st.session_state.historico[:-1][-6:]:
