@@ -254,9 +254,9 @@ if pergunta:
     render_chat()
 
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
-    st.markdown("""
-    <script>
-        var box = document.getElementById("chatbox");
-        if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
-    </script>
-    """, unsafe_allow_html=True)
+    #st.markdown("""
+    #<script>
+        #var box = document.getElementById("chatbox");
+        #if (box) { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); }
+    #</script>
+    #""", unsafe_allow_html=True)
