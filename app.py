@@ -64,8 +64,9 @@ st.markdown("""
     font-style: italic;
     color: #666;
 }
-
-
+ .scroll-fix { 
+height: 10px; 
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,7 +137,7 @@ embeddings, db, modelo = carregar_modelos()
 # -------------------------
 chat_box = st.container()
 
-def render_chat():
+def render_chat(scroll=False):
     """Renderiza todo o histórico e o indicador 'digitando'."""
     with chat_box:
         st.markdown('<div id="chatbox" class="chat-container">', unsafe_allow_html=True)
@@ -179,7 +180,22 @@ def render_chat():
 
         st.markdown('</div>', unsafe_allow_html=True)
 
+# Só injeta o JS de scroll quando explicitamente pedido (scroll=True)
+    if scroll:
+        st.markdown("""
+        <script>
+            const box = document.getElementById("chatbox");
+            if (box) {
+                // pequenas pausas ajudam o browser a estabilizar o layout antes de rolar
+                setTimeout(() => { box.scrollTop = box.scrollHeight; }, 120);
+            }
+        </script>
+        """, unsafe_allow_html=True)
+
 # render inicial
+# render inicial (sem scroll automático)
+render_chat(scroll=False)
+
 render_chat()
 st.markdown('',unsafe_allow_html=True)
 
@@ -258,7 +274,9 @@ if pergunta:
     # 5) desativar indicador digitando e re-renderizar tudo com a resposta
     st.session_state["digitando"] = False
     st.rerun()
-
+# re-render COM scroll desta vez (porque houve mudança de conteúdo)
+    render_chat(scroll=True)
+    
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
     #st.markdown("""
     #<script>
