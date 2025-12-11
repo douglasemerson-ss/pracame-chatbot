@@ -64,7 +64,8 @@ st.markdown("""
     font-style: italic;
     color: #666;
 }
-.scroll-fix { height: 10px; }
+
+/* .scroll-fix { height: 10px; }  */
 </style>
 """, unsafe_allow_html=True)
 
