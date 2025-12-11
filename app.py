@@ -18,7 +18,7 @@ st.subheader("Atualmente sou uma versão de testes — respondo dúvidas sobre *
 st.markdown("""
 <style>
 .chat-container {
-    max-width: 900px;
+    max-width: 90px;
     margin-left: auto;
     margin-right: auto;
     padding-bottom: 90px;
