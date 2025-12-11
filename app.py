@@ -273,7 +273,7 @@ if pergunta:
 
     # 5) desativar indicador digitando e re-renderizar tudo com a resposta
     st.session_state["digitando"] = False
-    st.rerun(scroll=True)
+    st.rerun()
 
     
     # 6) scroll suave para o final para garantir que o usuário veja a resposta
