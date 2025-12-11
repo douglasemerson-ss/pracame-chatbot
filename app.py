@@ -195,8 +195,6 @@ def render_chat(scroll=False):
 # render inicial
 # render inicial (sem scroll automático)
 render_chat(scroll=False)
-
-render_chat()
 st.markdown('',unsafe_allow_html=True)
 
 # -------------------------
