@@ -84,6 +84,15 @@ if "historico" not in st.session_state:
 if "digitando" not in st.session_state:
     st.session_state["digitando"] = False
 
+# Mensagem inicial do bot (apenas uma vez)
+if "boas_vindas" not in st.session_state:
+    st.session_state["boas_vindas"] = True
+    st.session_state["historico"].append({
+        "user": None,
+        "bot": "Olá! Sou o assistente do Praçame 👋. Posso te ajudar com dúvidas sobre o Assinador SERPRO. O que você deseja saber?"
+    })
+
+
 # -------------------------
 # Load OpenAI key from Streamlit secrets
 # -------------------------
@@ -116,7 +125,6 @@ Pergunta:
 {pergunta}
 
 Resposta (seja didático, explique causas e passos de solução com linguagem simples)
-Você será o primeiro a mandar uma mensagem, sempre iniciará a conversa com a seguinte mensagem: Olá! Como posso ajudar hoje ?
 """
 
 # -------------------------
