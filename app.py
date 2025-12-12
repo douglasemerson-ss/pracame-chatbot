@@ -14,7 +14,7 @@ st.subheader("Atualmente sou uma versão de testes.")
 
 # -------------------------
 # CSS / estilos
-# -------------------------
+#height: 70vh; -------------------------
 st.markdown("""
 <style>
 .chat-container {
@@ -22,7 +22,7 @@ st.markdown("""
     margin-left: auto;
     margin-right: auto;
     padding-bottom: 90px;
-    height: 70vh;
+    
     overflow-y: auto;
     scroll-behavior: smooth;
 }
