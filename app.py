@@ -88,7 +88,7 @@ if "digitando" not in st.session_state:
 if "boas_vindas" not in st.session_state:
     st.session_state["boas_vindas"] = True
     st.session_state["historico"].append({
-        "user": None,
+        #"user": None,
         "bot": "Olá! Sou o assistente do Praçame 👋. Posso te ajudar com dúvidas sobre o Assinador SERPRO. O que você deseja saber?"
     })
 
