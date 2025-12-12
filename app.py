@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # Streamlit config
 # -------------------------
 st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
-st.title("🔰 Praçame - Suporte Técnico Militar")
+st.title("🔰 Suporte Técnico Militar")
 st.header("Obtenha ajuda referente ao Assinador SERPRO com nosso assistente virtual.")
 st.subheader("Atualmente sou uma versão de testes.")
 
@@ -89,7 +89,7 @@ if "boas_vindas" not in st.session_state:
     st.session_state["boas_vindas"] = True
     st.session_state["historico"].append({
         "user":'Preciso de ajuda!',
-        "bot": "Olá! Sou o assistente Praçame 👋. Posso te ajudar com dúvidas sobre o Assinador SERPRO. O que você deseja saber?"
+        "bot": "Olá! Sou o assistente virtual 👋. Posso te ajudar com dúvidas sobre o Assinador SERPRO. O que você deseja saber?"
     })
 
 
