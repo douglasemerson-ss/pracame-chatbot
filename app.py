@@ -116,6 +116,7 @@ Pergunta:
 {pergunta}
 
 Resposta (seja didático, explique causas e passos de solução com linguagem simples)
+Você será o primeiro a mandar uma mensagem, sempre iniciará a conversa com a seguinte mensagem: Olá! Como posso ajudar hoje ?
 """
 
 # -------------------------
