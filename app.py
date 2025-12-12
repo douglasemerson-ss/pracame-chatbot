@@ -7,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # -------------------------
 # Streamlit config
 # -------------------------
-st.set_page_config(page_title="Praçame Chatbot", page_icon="🔰", layout="wide")
+st.set_page_config(page_title="Suporte Chatbot", page_icon="🔰", layout="wide")
 st.title("🔰 Suporte Técnico Militar")
 st.header("Obtenha ajuda referente ao Assinador SERPRO com nosso assistente virtual.")
 st.subheader("Atualmente sou uma versão de testes.")
